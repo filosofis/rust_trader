@@ -25,17 +25,21 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>) {
+
     let camera_entity = commands
         .spawn(Camera2dComponents::default())
         .current_entity()
         .unwrap();
     commands.insert_resource(CameraDraggingState::new(camera_entity));
 
-    spawn_candles(&mut commands);
+    spawn_candles(&mut commands, &mut materials);
 }
 
-fn spawn_candles(commands: &mut Commands) {
+fn spawn_candles(commands: &mut Commands, materials: &mut ResMut<Assets<ColorMaterial>>) {
+
     let market: Market = Binance::new(None, None);
 
     let KlineSummaries::AllKlineSummaries(klines) =
@@ -67,28 +71,33 @@ fn spawn_candles(commands: &mut Commands) {
 
     for kline in klines {
 
-        candle_height = ((kline.close * scale) - (kline.low * scale)) as f32;
+        candle_height = (kline.high - kline.low) * scale;
 
-        //println!("Scaled kline open {}, Scaled kline height {}", (kline.low * scale) as f32, candle_height);
-
+        println!("kline.high {}, kline.low {}", kline.high, kline.low);
+        println!("candle_height {}, candle_height scaled {}", (kline.high - kline.low), candle_height);
+        /*
+            The candles are not drawing correctly. Scaling likely the cause
+        */
         if kline.open > kline.close {
             commands.spawn(SpriteComponents {
+                material: materials.add(Color::rgb(0.9, 0.0, 0.0).into()), //red
                 transform: Transform::from_translation(Vec3::new(
                     candle_position_x,
                     ((kline.low * scale) - absolute_low - 450.0) as f32,
                     0.0,
                 )),
-                sprite: Sprite::new(Vec2::new(9.0, candle_height.abs())),
+                sprite: Sprite::new(Vec2::new(9.0, candle_height.abs() as f32)),
                 ..Default::default()
             });
         } else {
             commands.spawn(SpriteComponents {
+                material: materials.add(Color::rgb(0.0, 0.9, 0.0).into()), //green 
                 transform: Transform::from_translation(Vec3::new(
                     candle_position_x,
                     ((kline.low * scale) - absolute_low - 450.0) as f32,
                     0.0,
                 )),
-                sprite: Sprite::new(Vec2::new(9.0, candle_height.abs())),
+                sprite: Sprite::new(Vec2::new(9.0, candle_height.abs() as f32)),
                 ..Default::default()
             });
         }
